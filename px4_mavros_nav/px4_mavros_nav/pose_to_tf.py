@@ -62,7 +62,6 @@ class PoseToTf(Node):
         if self.use_message_stamp:
             t.header.stamp = msg.header.stamp
         else:
-            # Gazebo /clock 기준으로 TF 시간을 맞추기 위해 node clock을 사용합니다.
             t.header.stamp = self.get_clock().now().to_msg()
 
         t.header.frame_id = self.parent_frame
