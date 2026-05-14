@@ -26,10 +26,6 @@ class CmdVelOffboard(Node):
         self.declare_parameter('max_xy_speed', 0.6)
         self.declare_parameter('max_z_speed', 0.25)
         self.declare_parameter('max_yaw_rate', 0.4)
-
-        # true:
-        #   /cmd_vel linear.x, linear.y를 body frame 명령으로 해석합니다.
-        #   i를 누르면 현재 yaw 방향으로 전진합니다.
         self.declare_parameter('body_frame_cmd', True)
 
         self.cmd_vel_topic = self.get_parameter('cmd_vel_topic').value
@@ -120,7 +116,6 @@ class CmdVelOffboard(Node):
 
         q = self.pose.pose.orientation
 
-        # yaw from quaternion, ROS ENU convention
         siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
         cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
 
@@ -161,14 +156,9 @@ class CmdVelOffboard(Node):
         if self.body_frame_cmd:
             yaw = self.yaw_from_pose()
 
-            # body FLU -> local ENU
-            # body x: forward
-            # body y: left
-            # local x/y: MAVROS local ENU setpoint
             out.linear.x = math.cos(yaw) * vx_body - math.sin(yaw) * vy_body
             out.linear.y = math.sin(yaw) * vx_body + math.cos(yaw) * vy_body
         else:
-            # 기존 방식: /cmd_vel을 local frame 명령으로 그대로 사용
             out.linear.x = vx_body
             out.linear.y = vy_body
 
@@ -199,7 +189,6 @@ class CmdVelOffboard(Node):
         self.get_logger().info('Requested arm.')
 
     def timer_cb(self):
-        # Offboard 유지용으로 항상 velocity setpoint를 publish합니다.
         self.vel_pub.publish(self.make_velocity_setpoint())
 
         if self.state is None:
@@ -214,7 +203,6 @@ class CmdVelOffboard(Node):
             self.connected_time = now
             return
 
-        # setpoint stream을 먼저 2초 이상 보낸 뒤 mode/arm 요청
         if (now - self.connected_time).nanoseconds * 1e-9 < 2.0:
             return
 
@@ -229,7 +217,6 @@ class CmdVelOffboard(Node):
                 self.last_request_time = now
                 return
 
-
 def main(args=None):
     rclpy.init(args=args)
     node = CmdVelOffboard()
@@ -241,7 +228,6 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
