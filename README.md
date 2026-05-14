@@ -202,7 +202,7 @@ Run this while SLAM is active.
 
 ```bash
 ros2 run nav2_map_server map_saver_cli \
-  -f ~/maps/slam_toolbox/aws_warehouse_slam_toolbox \
+  -f "<SLAM_MAP_PREFIX>" \
   --ros-args \
   -p use_sim_time:=true \
   -p map_subscribe_transient_local:=true
@@ -240,7 +240,7 @@ Run this in another terminal.
 ```bash
 ros2 run octomap_server octomap_saver_node \
   --ros-args \
-  -p octomap_path:=$HOME/maps/octomap/aws_warehouse_octomap.bt
+  -p octomap_path:="<OCTOMAP_BT_PATH.bt>"
 ```
 
 ---
@@ -256,7 +256,7 @@ source ~/drone_ros2_ws/install/setup.bash
 
 ```bash
 ros2 launch px4_mavros_nav octomap_3d_astar.launch.py \
-  octomap_path:=$HOME/maps/octomap/aws_warehouse_octomap.bt \
+  octomap_path:="<OCTOMAP_BT_PATH.bt>" \
   execute:=true \
   goal_z:=1.5
 ```
