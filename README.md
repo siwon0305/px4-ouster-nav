@@ -20,10 +20,6 @@ AWS RoboMaker Small Warehouse World
 ### 1.1 Install Dependencies
 
 ```bash
-sudo apt update
-```
-
-```bash
 sudo apt install -y \
   ros-humble-mavros \
   ros-humble-mavros-extras \
@@ -129,6 +125,8 @@ cd ~/PX4-Autopilot
 make px4_sitl gazebo-classic_sensored_m100_the
 ```
 
+Keep this terminal open after PX4 SITL starts.
+
 ---
 
 ### 1.6 Run MAVROS
@@ -142,7 +140,21 @@ ros2 launch mavros px4.launch fcu_url:=udp://:14540@127.0.0.1:14557
 
 ---
 
-### 1.7 Run SLAM
+### 1.7 Takeoff Before Starting SLAM
+
+Before starting SLAM, take off the vehicle first.
+
+In the PX4 SITL console in Terminal 1, run:
+
+```bash
+commander takeoff
+```
+
+Wait until the vehicle is airborne and stable. Then start SLAM.
+
+---
+
+### 1.8 Run SLAM
 
 Terminal 3:
 
@@ -157,9 +169,20 @@ ros2 launch px4_mavros_nav slam_mapping.launch.py
 
 ---
 
-### 1.8 Run cmd_vel Offboard Control
+## 2. Moving the Vehicle During SLAM
 
-Terminal 4:
+There are two ways to move the vehicle while SLAM is running:
+
+```text
+Method A: Manual keyboard teleoperation
+Method B: Automatic movement using RViz goal pose and 3D A*
+```
+
+---
+
+### 2.1 Method A: Manual SLAM with Keyboard Teleoperation
+
+#### Terminal 4: Run cmd_vel Offboard Control
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -176,11 +199,7 @@ ros2 run px4_mavros_nav cmd_vel_offboard \
   -p cmd_timeout:=0.5
 ```
 
----
-
-### 1.9 Run Keyboard Teleoperation
-
-Terminal 5:
+#### Terminal 5: Run Keyboard Teleoperation
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -190,13 +209,53 @@ source /opt/ros/humble/setup.bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
-Use the keyboard to move the drone while SLAM is running.
+---
+
+### 2.2 Method B: SLAM with 3D A* Goal Poses
+
+#### Terminal 6: Run the Live OctoMap Server
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/drone_ros2_ws/install/setup.bash
+```
+
+```bash
+ros2 run octomap_server octomap_server_node \
+  --ros-args \
+  -r cloud_in:=/ouster/points \
+  -p frame_id:=map \
+  -p resolution:=0.1 \
+  -p use_sim_time:=true
+```
+
+#### Terminal 7: Run A* Execute Mode
+
+```bash
+ros2 run px4_mavros_nav astar_goal_follower \
+  --ros-args \
+  -p use_sim_time:=true \
+  -p execute:=true \
+  -p goal_z:=1.5
+```
+
+#### Set a Goal Pose in RViz
+
+In RViz, select `2D Goal Pose` and click the target location.
+
+If `2D Goal Pose` is not visible in the RViz panel or toolbar, use the shortcut:
+
+```text
+Ctrl + G
+```
+
+Then click the desired target location.  
 
 ---
 
-## 2. Save Maps
+## 3. Save Maps
 
-### 2.1 Save the SLAM Toolbox Map
+### 3.1 Save the SLAM Toolbox Map
 
 Run this while SLAM is active.
 
@@ -210,9 +269,11 @@ ros2 run nav2_map_server map_saver_cli \
 
 ---
 
-### 2.2 Generate OctoMap
+### 3.2 Generate OctoMap
 
-Run this while SLAM, PX4, and MAVROS are active.
+Run this while PX4, Gazebo, MAVROS, and SLAM are active.
+
+If the live OctoMap server is already running from `2.2 Method B`, you do not need to start another one.
 
 Terminal 6:
 
@@ -232,10 +293,9 @@ ros2 run octomap_server octomap_server_node \
 
 ---
 
-### 2.3 Save OctoMap
+### 3.3 Save OctoMap
 
 Run this in another terminal.
-
 
 ```bash
 ros2 run octomap_server octomap_saver_node \
@@ -245,7 +305,9 @@ ros2 run octomap_server octomap_saver_node \
 
 ---
 
-## 3. Run 3D A* with a Saved OctoMap
+## 4. Run 3D A* with a Saved OctoMap
+
+This mode runs 3D A* using a previously saved `.bt` OctoMap file.
 
 Run this while PX4, Gazebo, and MAVROS are active.
 
@@ -261,4 +323,4 @@ ros2 launch px4_mavros_nav octomap_3d_astar.launch.py \
   goal_z:=1.5
 ```
 
-Set the target in RViz using `2D Goal Pose`. The planner generates a 3D A* path and publishes MAVROS setpoints.
+---
